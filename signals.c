@@ -12,10 +12,11 @@
 int main() {
     int signals, sLength, value, start, end;
     int max = 0;
-    int pos = 0; //init position is zero
+    int pos = -1; //init position is zero
     int pos1 = 0;
     int previous = 0;
     int h = 0;
+    int x = 1;
     
     Stack stack;                        // initialize stack
     stack = newStack(10);
@@ -26,39 +27,31 @@ int main() {
         scanf("%d", &sLength);
         for (int j = 0; j < sLength; j++) {
             scanf("%d", &value);
-            if (value < max) {          // hier al die shit poppen
-                end = pop(&stack);
-                previous = pop(&stack);
-                pos--;
-                h = end;
-                while (previous <= end) {
-                    if (previous < end) {
-                        printf("[%d,%d)@%d\n", pos, pos1, h);
-                        break;
-                    } else if (previous == end) {
-                        while (previous == end) {
-                            pos--;
-                            previous = pop(&stack);
-                        }
-                        printf("[%d,%d)@%d\n", pos, pos1, h);
-                    }
-                    h--;
+            h = max;
+            while (value < h) {
+                if (x == 1) {
+                    pop(&stack);
+                    x++;
                 }
-                push(value, &stack);
-                pos++;
-            } else {  //stack the value
-                max = value;
-                push(value, &stack);
-                //printf("%d\n", pos);
-                pos++;  //When something gets added to the stack, the position moves one to the right (+1)
-                pos1++;
+                previous = pop(&stack);
+                if (previous == h) {
+                    pos--;
+                    continue;
+                } else if (previous < h){
+                    push(previous, &stack);
+                    printf("[%d,%d)@%d\n", pos, pos1, h);
+                    h--;
+                    continue;
+                } else {
+                    break;
+                }
             }
-            
-            if (j == (sLength-1)) {
-                //
-            }
+            push(value, &stack);
+            max = value;       //de top van de stack is het hoogste getal en als er eentje wordt toegevoegd is deze groter of gelijk dus altijd de max value
+            pos++;             //When something gets added to the stack, the position moves one to the right (+1)
+            pos1++;
+            x = 1;
         }
     }
-    
-  return 0;
+    return 0;
 }
