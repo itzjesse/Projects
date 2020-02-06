@@ -9,6 +9,10 @@
  */
 #include "LibStack.h"
 
+\\ oefen code
+\\ 1 9 1 3 3 5 5 7 7 4 0
+\\ output: [5,7)@7, [5,7)@6, [3,7)@5, [3,9)@4, [1,9)@3, [1,9)@2, [0,9)@1, 
+
 int main() {
     int signals, sLength, value, start, end;
     int max = 0;
