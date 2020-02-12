@@ -31,6 +31,8 @@
  */
 int maxDegree = 0;
 int variable = 0;
+char var;
+int x = 0;
 
 int degree(List *lp) {
     int d = 0;
@@ -42,7 +44,11 @@ int degree(List *lp) {
 }
 
 void oneVariable(List *lp) {
-    char var = 'x';
+    if (*lp != NULL && (*lp)->tt == Identifier && x == 0) {
+        var = *((*lp)->t).identifier;
+        //printf("var: %c\n", var);
+        x++;
+    }
     if (*lp != NULL && (*lp)->tt == Identifier && var == *((*lp)->t).identifier) {
         var = *((*lp)->t).identifier;
     } else if (*lp != NULL && (*lp)->tt == Identifier && var != *((*lp)->t).identifier) {
@@ -171,6 +177,7 @@ void recognizeEquations() {
     }
       maxDegree = 0;
       variable = 0;
+      x = 0;
     free(ar);
     freeTokenList(tl);
     printf("\ngive an equation: ");
