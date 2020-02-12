@@ -29,6 +29,26 @@
  * When that is the case, they yield the value 1 and the pointer points to the rest of
  * the token list. Otherwise they yield 0 and the pointer remains unchanged.
  */
+int maxDegree = 0;
+int variable = 0;
+
+int degree(List *lp) {
+    int d = 0;
+    if (*lp != NULL && (*lp)->tt == Number && ((*lp)->t).number > d) {
+        d = ((*lp)->t).number;
+        return d;
+    }
+    return 0;
+}
+
+void oneVariable(List *lp) {
+    char var = 'x';
+    if (*lp != NULL && (*lp)->tt == Identifier && var == *((*lp)->t).identifier) {
+        var = *((*lp)->t).identifier;
+    } else if (*lp != NULL && (*lp)->tt == Identifier && var != *((*lp)->t).identifier) {
+        variable++;
+    }
+}
 
 int acceptNumber(List *lp) {
   if (*lp != NULL && (*lp)->tt == Number) {
@@ -74,15 +94,29 @@ int acceptFactor(List *lp) {
 
 int acceptTerm(List *lp) {
     if (acceptNumber(lp)) {
+        oneVariable(lp);
         if (acceptIdentifier(lp)) {
+            if (maxDegree == 0) {
+                maxDegree = 1;
+            }
             if (acceptCharacter(lp, '^')) {
+                if (degree(lp) > maxDegree) {
+                    maxDegree = degree(lp);
+                }
                 return acceptNumber(lp);
             }
         }
         return 1;
     } else {
+        oneVariable(lp);
         if (acceptIdentifier(lp)) {
+            if (maxDegree == 0) {
+                maxDegree = 1;
+            }
             if (acceptCharacter(lp, '^')) {
+                if (degree(lp) > maxDegree) {
+                    maxDegree = degree(lp);
+                }
                 return acceptNumber(lp);
             } else {
                 return 1;
@@ -117,19 +151,26 @@ int acceptEquation(List *lp) {
 }
 
 /* The function recognizeExpressions demonstrates the recognizer. */
-void recognizeExpressions() {
+void recognizeEquations() {
   char *ar;
   List tl, tl1;
   printf("give an equation: ");
   ar = readInput();
   while (ar[0] != '!') {
     tl = tokenList(ar);
+      printList(tl);
     tl1 = tl;
     if (acceptEquation(&tl1) && tl1 == NULL) {
-      printf("this is an equation\n");
+        if (variable == 0) {
+            printf("this is an equation in 1 variable of degree %d\n", maxDegree);
+        } else if (variable > 0) {
+            printf("this is an equation, but not in 1 variable\n");
+        }
     } else {
       printf("this is not an equation\n");
     }
+      maxDegree = 0;
+      variable = 0;
     free(ar);
     freeTokenList(tl);
     printf("\ngive an equation: ");
