@@ -22,12 +22,15 @@ int treeIdentifier(List *lp, FormTree *t);
 int treeAtom(List *lp, FormTree *t);
 int treeLiteral(List *lp, FormTree *t);
 int treeFormula(List *lp, FormTree *t);
+int treeDisjunction(List *lp, FormTree *t);
 int implication(List *lp, FormTree *t);
+int biimplication(List *lp, FormTree *t);
+int complexityTree(FormTree t);
 
 void treeFormulas();
 
 void freeTree(FormTree t);
 
-void printTree(FormTree t, int *complexity);
+void printTree(FormTree t);
 
 #endif

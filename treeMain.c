@@ -16,9 +16,10 @@ int main(int argc, char *argv[]) {
         printList(tl);
         tl1 = tl;
         FormTree t = NULL;
-        if ( implication(&tl1,&t) && tl1 == NULL ) {
+        if ( biimplication(&tl1,&t) && tl1 == NULL ) {
             printf("with parentheses: ");
-            printTree(t, &complexity);
+            complexity = complexityTree(t) - 1;
+            printTree(t);
             printf("\ncomplexity: %d\n", complexity);
             freeTree(t);
         } else {

@@ -81,7 +81,7 @@ int treeAtom(List *lp, FormTree *t) {
     if (treeIdentifier(lp,t)) {
         return 1;
     }
-    if (acceptCharacter(lp,'(') && treeFormula(lp,t) && acceptCharacter(lp,')') ) {
+    if (acceptCharacter(lp,'(') && biimplication(lp,t) && acceptCharacter(lp,')') ) {
         return 1;
     }
     return 0;
@@ -121,10 +121,17 @@ int treeFormula(List *lp, FormTree *t) {
         tok.symbol = '&';
         *t = newFormTreeNode(Symbol, tok, tL, tR);
     } /* no '&', so we reached the end of conjunction */
+    return 1;
+}
+
+int treeDisjunction(List *lp, FormTree *t) {
+    if ( !treeFormula(lp,t) ) {
+        return 0;
+    }
     while ( acceptCharacter(lp,'|') ) {
         FormTree tL = *t;
         FormTree tR = NULL;
-        if ( !treeLiteral(lp,&tR) ) {
+        if ( !treeFormula(lp,&tR) ) {
             freeTree(tR);
             return 0;
         }
@@ -136,27 +143,14 @@ int treeFormula(List *lp, FormTree *t) {
 }
 
 int implication(List *lp, FormTree *t) {
-    if ( !treeFormula(lp,t) ) {
+    if ( !treeDisjunction(lp,t) ) {
         return 0;
-    }
-    if ( acceptCharacter(lp,'<') ) {
-        acceptCharacter(lp, '-');
-        acceptCharacter(lp, '>');
-        FormTree tL = *t;
-        FormTree tR = NULL;
-        if ( !treeLiteral(lp,&tR) ) {
-            freeTree(tR);
-            return 0;
-        }
-        Token tok;
-        tok.symbol = '<';
-        *t = newFormTreeNode(Symbol, tok, tL, tR);
     }
     if (acceptCharacter(lp,'-')) {
         acceptCharacter(lp, '>');
         FormTree tL = *t;
         FormTree tR = NULL;
-        if ( !treeLiteral(lp,&tR) ) {
+        if ( !treeDisjunction(lp,&tR) ) {
             freeTree(tR);
             return 0;
         }
@@ -167,7 +161,43 @@ int implication(List *lp, FormTree *t) {
     return 1;
 }
 
-void printTree(FormTree t, int *complexity) {
+int biimplication(List *lp, FormTree *t) {
+    if ( !implication(lp,t) ) {
+        return 0;
+    }
+    if ( acceptCharacter(lp,'<') ) {
+        acceptCharacter(lp, '-');
+        acceptCharacter(lp, '>');
+        FormTree tL = *t;
+        FormTree tR = NULL;
+        if ( !implication(lp,&tR) ) {
+            freeTree(tR);
+            return 0;
+        }
+        Token tok;
+        tok.symbol = '<';
+        *t = newFormTreeNode(Symbol, tok, tL, tR);
+    }
+    return 1;
+}
+
+int complexityTree(FormTree t) {
+    if (t == NULL) {
+        return 0;
+    } else {
+        //printf("lolz\n");
+        int left = complexityTree(t->left);
+        //printf("left: %d\n", left);
+        int right = complexityTree(t->right);
+        if (left > right) {
+            return (left+1);
+        } else {
+            return (right+1);
+        }
+    }
+}
+
+void printTree(FormTree t) {
     if (t == NULL) {
         return;
     }
@@ -180,36 +210,31 @@ void printTree(FormTree t, int *complexity) {
                     break;
                 case '~':
                     printf("(~");
-                    printTree(t->left, complexity);
+                    printTree(t->left);
                     printf(")");
-                    (*complexity)++;
                     break;
                 case '-':
                     printf("(");
-                    printTree(t->left, complexity);
+                    printTree(t->left);
                     printf(" -> ");
-                    printTree(t->right, complexity);
+                    printTree(t->right);
                     printf(")");
-                    (*complexity)++;
                     break;
                 case '<':
                     printf("(");
-                    printTree(t->left, complexity);
+                    printTree(t->left);
                     printf(" <-> ");
-                    printTree(t->right, complexity);
+                    printTree(t->right);
                     printf(")");
-                    (*complexity)++;
                     break;
                 default:
                     printf("(");
-                    printTree(t->left, complexity);
+                    printTree(t->left);
                     printf(" %c ",t->t.symbol);
-                    printTree(t->right, complexity);
+                    printTree(t->right);
                     printf(")");
-                    (*complexity)++;
                     break;
             }
-            //printf("%d\n", complexity);
             break;
         case Identifier:
             printf("%s", t->t.identifier);
