@@ -18,7 +18,11 @@ int main(int argc, char *argv[]) {
         FormTree t = NULL;
         if ( biimplication(&tl1,&t) && tl1 == NULL ) {
             printf("with parentheses: ");
+            // correction factor of -1
             complexity = complexityTree(t) - 1;
+            printTree(t);
+            printf("\n");
+            simplify(t);
             printTree(t);
             printf("\ncomplexity: %d\n", complexity);
             freeTree(t);

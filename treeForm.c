@@ -64,7 +64,7 @@ int treeIdentifier(List *lp, FormTree *t) {
     return 0;
 }
 
-// <atom>  ::=  'T' | 'F' | <identifier> | '(' <formula> ')'
+// <atom>  ::=  'T' | 'F' | <identifier> | '(' <biimplication> ')'
 int treeAtom(List *lp, FormTree *t) {
     if (acceptCharacter(lp,'T')) {
         Token tok;
@@ -105,7 +105,7 @@ int treeLiteral(List *lp, FormTree *t) {
     return 0;
 }
 
-// <formula>  ::=  <literal> { '&' <literal> | '|' <literal>}
+// <formula>  ::=  <literal> { '&' <literal> }
 int treeFormula(List *lp, FormTree *t) {
     if ( !treeLiteral(lp,t) ) {
         return 0;
@@ -124,6 +124,7 @@ int treeFormula(List *lp, FormTree *t) {
     return 1;
 }
 
+// <disjunction>  ::=  <formula> { '|' <formula> }
 int treeDisjunction(List *lp, FormTree *t) {
     if ( !treeFormula(lp,t) ) {
         return 0;
@@ -142,52 +143,58 @@ int treeDisjunction(List *lp, FormTree *t) {
     return 1;
 }
 
+// <implication>  ::=  <disjuntion> { '->' <disjuntion> }
 int implication(List *lp, FormTree *t) {
     if ( !treeDisjunction(lp,t) ) {
         return 0;
     }
     if (acceptCharacter(lp,'-')) {
-        acceptCharacter(lp, '>');
-        FormTree tL = *t;
-        FormTree tR = NULL;
-        if ( !treeDisjunction(lp,&tR) ) {
-            freeTree(tR);
+        if (acceptCharacter(lp, '>')) {
+            FormTree tL = *t;
+            FormTree tR = NULL;
+            if ( !treeDisjunction(lp,&tR) ) {
+                freeTree(tR);
+                return 0;
+            }
+            Token tok;
+            tok.symbol = '-';
+            *t = newFormTreeNode(Symbol, tok, tL, tR);
+        } else {
             return 0;
         }
-        Token tok;
-        tok.symbol = '-';
-        *t = newFormTreeNode(Symbol, tok, tL, tR);
     }
     return 1;
 }
 
+// <biimplication>  ::=  <implication> { '<->' <implication> }
 int biimplication(List *lp, FormTree *t) {
     if ( !implication(lp,t) ) {
         return 0;
     }
-    if ( acceptCharacter(lp,'<') ) {
-        acceptCharacter(lp, '-');
-        acceptCharacter(lp, '>');
-        FormTree tL = *t;
-        FormTree tR = NULL;
-        if ( !implication(lp,&tR) ) {
-            freeTree(tR);
+    if ( acceptCharacter(lp,'<')) {
+        if ( acceptCharacter(lp, '-') &&  acceptCharacter(lp, '>')) {
+            FormTree tL = *t;
+            FormTree tR = NULL;
+            if ( !implication(lp,&tR) ) {
+                freeTree(tR);
+                return 0;
+            }
+            Token tok;
+            tok.symbol = '<';
+            *t = newFormTreeNode(Symbol, tok, tL, tR);
+        } else {
             return 0;
         }
-        Token tok;
-        tok.symbol = '<';
-        *t = newFormTreeNode(Symbol, tok, tL, tR);
     }
     return 1;
 }
 
+// recursive function to find the maximum depth of the tree
 int complexityTree(FormTree t) {
     if (t == NULL) {
         return 0;
     } else {
-        //printf("lolz\n");
         int left = complexityTree(t->left);
-        //printf("left: %d\n", left);
         int right = complexityTree(t->right);
         if (left > right) {
             return (left+1);
@@ -238,6 +245,115 @@ void printTree(FormTree t) {
             break;
         case Identifier:
             printf("%s", t->t.identifier);
+            break;
+    }
+}
+
+void simplify(FormTree t) {
+    if (t == NULL) {
+        return;
+    }
+    switch (t->tt) {
+        case Symbol:
+            switch (t->t.symbol) {
+                case 'T':
+                case 'F':
+                    break;
+                case '~':
+                    simplify(t->left);
+                    if ((t->left)->tt == Symbol) {
+                        if ((t->left)->t.symbol == 'T') {
+                            t->t.symbol = 'F';
+                        } else if ((t->left)->t.symbol == 'F') {
+                            t->t.symbol = 'T';
+                        } else if ((t->left)->t.symbol == '~' && ((t->left)->left)->tt == Identifier) {
+                            t->tt = Identifier;
+                            t->t.identifier = ((t->left)->left)->t.identifier;
+                        }
+                    }
+                    break;
+                case '&':
+                    simplify(t->left);
+                    simplify(t->right);
+                    if ((t->left)->tt == Symbol && (t->right)->tt == Identifier) {
+                        if ((t->left)->t.symbol == 'T') {
+                            t->tt = Identifier;
+                            t->t.identifier = (t->right)->t.identifier;
+                        } else if ((t->left)->t.symbol == 'F') {
+                            t->t.symbol = 'F';
+                        }
+                    } else if ((t->left)->tt == Identifier && (t->right)->tt == Symbol) {
+                       if ((t->right)->t.symbol == 'T') {
+                            t->tt = Identifier;
+                            t->t.identifier = (t->left)->t.identifier;
+                        } else if ((t->right)->t.symbol == 'F') {
+                            t->t.symbol = 'F';
+                        }
+                    }
+                    break;
+                case '|':
+                    simplify(t->left);
+                    simplify(t->right);
+                    if ((t->left)->tt == Symbol && (t->right)->tt == Identifier) {
+                        if ((t->left)->t.symbol == 'T') {
+                            t->t.symbol = 'T';
+                        } else if ((t->left)->t.symbol == 'F') {
+                            t->tt = Identifier;
+                            t->t.identifier = (t->right)->t.identifier;
+                        }
+                    } else if ((t->left)->tt == Identifier && (t->right)->tt == Symbol) {
+                       if ((t->right)->t.symbol == 'T') {
+                            t->t.symbol = 'T';
+                        } else if ((t->right)->t.symbol == 'F') {
+                            t->tt = Identifier;
+                            t->t.identifier = (t->left)->t.identifier;
+                        }
+                    }
+                    break;
+                case '-':
+                    simplify(t->left);
+                    simplify(t->right);
+                    if ((t->left)->tt == Symbol && (t->right)->tt == Identifier) {
+                        if ((t->left)->t.symbol == 'T') {
+                            t->tt = Identifier;
+                            t->t.identifier = (t->right)->t.identifier;
+                        } else if ((t->left)->t.symbol == 'F') {
+                            t->t.symbol = 'T';
+                        }
+                    } else if ((t->left)->tt == Identifier && (t->right)->tt == Symbol) {
+                       if ((t->right)->t.symbol == 'T') {
+                            t->t.symbol = 'T';
+                        } else if ((t->right)->t.symbol == 'F') {
+                            t->t.symbol = '~';
+                        }
+                    }
+                    break;
+                case '<':
+                    simplify(t->left);
+                    simplify(t->right);
+                    if ((t->left)->tt == Symbol && (t->right)->tt == Identifier) {
+                        if ((t->left)->t.symbol == 'T') {
+                            t->tt = Identifier;
+                            t->t.identifier = (t->right)->t.identifier;
+                        } else if ((t->left)->t.symbol == 'F') {
+                            t->t.symbol = '~';
+                            (t->left)->tt = Identifier;
+                            (t->left)->t.identifier = (t->right)->t.identifier;
+                        }
+                    } else if ((t->left)->tt == Identifier && (t->right)->tt == Symbol) {
+                       if ((t->right)->t.symbol == 'T') {
+                            t->tt = Identifier;
+                            t->t.identifier = (t->left)->t.identifier;
+                        } else if ((t->right)->t.symbol == 'F') {
+                            t->t.symbol = '~';
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
+            break;
+        case Identifier:
             break;
     }
 }

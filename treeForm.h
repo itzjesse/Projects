@@ -26,6 +26,7 @@ int treeDisjunction(List *lp, FormTree *t);
 int implication(List *lp, FormTree *t);
 int biimplication(List *lp, FormTree *t);
 int complexityTree(FormTree t);
+void simplify(FormTree t);
 
 void treeFormulas();
 
